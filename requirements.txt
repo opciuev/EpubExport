@@ -1,0 +1,6 @@
+pypandoc==1.13
+ebooklib==0.18
+click==8.1.7
+pathlib2==2.3.7
+tkinter
+Pillow==10.0.1

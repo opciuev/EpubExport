@@ -40,7 +40,8 @@ ENV/
 output/
 *.epub
 *.md
-*.txt
+# Keep requirements.txt
+!requirements.txt
 
 # Logs
 *.log

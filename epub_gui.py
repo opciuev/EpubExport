@@ -25,36 +25,36 @@ class EpubExporterGUI:
         self.root.geometry("800x600")
         self.root.minsize(600, 400)
         
-        # 设置图标和样式
+        # Set icon and styles
         self.setup_styles()
         
-        # 变量
+        # Variables
         self.epub_file_path = tk.StringVar()
-        self.output_dir_path = tk.StringVar(value="")  # 默认为空
+        self.output_dir_path = tk.StringVar(value="")  # Default empty
         self.export_format = tk.StringVar(value="markdown")
         self.progress_var = tk.DoubleVar()
         self.status_var = tk.StringVar(value="就绪")
         
-        # 消息队列用于线程间通信
+        # Message queue for thread communication
         self.message_queue = queue.Queue()
         
-        # 创建界面
+        # Create interface
         self.create_widgets()
         
-        # 启动消息处理
+        # Start message processing
         self.process_queue()
         
     def setup_styles(self):
         """设置界面样式"""
         style = ttk.Style()
         
-        # 设置主题
+        # Set theme
         try:
             style.theme_use('clam')
         except:
             pass
             
-        # 自定义样式
+        # Custom styles
         style.configure('Title.TLabel', font=('Arial', 16, 'bold'))
         style.configure('Heading.TLabel', font=('Arial', 12, 'bold'))
         style.configure('Success.TLabel', foreground='green')
@@ -62,45 +62,45 @@ class EpubExporterGUI:
         
     def create_widgets(self):
         """创建界面组件"""
-        # 主框架
+        # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # 配置网格权重
+        # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
         
-        # 标题
+        # Title
         title_label = ttk.Label(main_frame, text="📚 EPUB 章节导出工具", style='Title.TLabel')
         title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
         
-        # 文件选择区域
+        # File selection area
         self.create_file_selection_area(main_frame, 1)
         
-        # 输出设置区域
+        # Output settings area
         self.create_output_settings_area(main_frame, 2)
         
-        # 章节预览区域
+        # Chapter preview area
         self.create_preview_area(main_frame, 3)
         
-        # 控制按钮区域
+        # Control buttons area
         self.create_control_area(main_frame, 4)
         
-        # 进度条和状态
+        # Progress bar and status
         self.create_progress_area(main_frame, 5)
         
-        # 日志输出区域
+        # Log output area
         self.create_log_area(main_frame, 6)
         
     def create_file_selection_area(self, parent, row):
         """创建文件选择区域"""
-        # 文件选择框架
+        # File selection frame
         file_frame = ttk.LabelFrame(parent, text="📁 选择 EPUB 文件", padding="10")
         file_frame.grid(row=row, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
         file_frame.columnconfigure(1, weight=1)
         
-        # EPUB 文件选择
+        # EPUB file selection
         ttk.Label(file_frame, text="EPUB 文件:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10))
         
         epub_entry = ttk.Entry(file_frame, textvariable=self.epub_file_path, width=50)
@@ -111,12 +111,12 @@ class EpubExporterGUI:
         
     def create_output_settings_area(self, parent, row):
         """创建输出设置区域"""
-        # 输出设置框架
+        # Output settings frame
         output_frame = ttk.LabelFrame(parent, text="⚙️ 输出设置", padding="10")
         output_frame.grid(row=row, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
         output_frame.columnconfigure(1, weight=1)
         
-        # 输出目录
+        # Output directory
         ttk.Label(output_frame, text="输出目录:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10))
         
         output_entry = ttk.Entry(output_frame, textvariable=self.output_dir_path, width=50)
@@ -125,7 +125,7 @@ class EpubExporterGUI:
         output_browse_btn = ttk.Button(output_frame, text="浏览...", command=self.browse_output_dir)
         output_browse_btn.grid(row=0, column=2)
         
-        # 输出格式
+        # Output format
         ttk.Label(output_frame, text="输出格式:").grid(row=1, column=0, sticky=tk.W, padx=(0, 10), pady=(10, 0))
         
         format_frame = ttk.Frame(output_frame)
@@ -138,13 +138,13 @@ class EpubExporterGUI:
         
     def create_preview_area(self, parent, row):
         """创建章节预览区域"""
-        # 预览框架
+        # Preview frame
         preview_frame = ttk.LabelFrame(parent, text="👀 章节预览", padding="10")
         preview_frame.grid(row=row, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         preview_frame.columnconfigure(0, weight=1)
         preview_frame.rowconfigure(1, weight=1)
         
-        # 预览控制
+        # Preview controls
         preview_control_frame = ttk.Frame(preview_frame)
         preview_control_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         
@@ -155,23 +155,23 @@ class EpubExporterGUI:
         self.chapter_count_label = ttk.Label(preview_control_frame, text="")
         self.chapter_count_label.pack(side=tk.LEFT, padx=(20, 0))
         
-        # 章节列表
+        # Chapter list
         self.create_chapter_list(preview_frame, 1)
         
-        # 调试按钮
+        # Debug button
         debug_btn = ttk.Button(preview_control_frame, text="🔍 调试分析", 
                               command=self.debug_epub_structure)
         debug_btn.pack(side=tk.LEFT, padx=(10, 0))
         
     def create_chapter_list(self, parent, row):
         """创建章节列表"""
-        # 创建框架来包含选择控制和列表
+        # Create frame to contain selection controls and list
         list_frame = ttk.Frame(parent)
         list_frame.grid(row=row, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         list_frame.columnconfigure(0, weight=1)
         list_frame.rowconfigure(1, weight=1)
         
-        # 选择控制
+        # Selection controls
         select_frame = ttk.Frame(list_frame)
         select_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
         
@@ -179,32 +179,32 @@ class EpubExporterGUI:
         ttk.Button(select_frame, text="全不选", command=self.deselect_all_chapters).pack(side=tk.LEFT, padx=(5, 0))
         ttk.Button(select_frame, text="反选", command=self.invert_chapter_selection).pack(side=tk.LEFT, padx=(5, 0))
         
-        # 创建 Treeview 用于显示章节
+        # Create Treeview for displaying chapters
         columns = ('选择', '序号', '章节标题', '内容长度')
         self.chapter_tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=8)
         
-        # 设置列标题
+        # Set column headers
         for col in columns:
             self.chapter_tree.heading(col, text=col)
             
-        # 设置列宽
+        # Set column widths
         self.chapter_tree.column('选择', width=50, anchor=tk.CENTER)
         self.chapter_tree.column('序号', width=60, anchor=tk.CENTER)
         self.chapter_tree.column('章节标题', width=250, anchor=tk.W)
         self.chapter_tree.column('内容长度', width=100, anchor=tk.CENTER)
         
-        # 绑定双击事件来切换选择状态
+        # Bind double-click event to toggle selection
         self.chapter_tree.bind('<Double-1>', self.toggle_chapter_selection)
         
-        # 添加滚动条
+        # Add scrollbar
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.chapter_tree.yview)
         self.chapter_tree.configure(yscrollcommand=scrollbar.set)
         
-        # 布局
+        # Layout
         self.chapter_tree.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         scrollbar.grid(row=1, column=1, sticky=(tk.N, tk.S))
         
-        # 存储章节选择状态
+        # Store chapter selection states
         self.chapter_selections = {}
         
     def create_control_area(self, parent, row):
@@ -212,21 +212,21 @@ class EpubExporterGUI:
         control_frame = ttk.Frame(parent)
         control_frame.grid(row=row, column=0, columnspan=3, pady=(10, 0))
         
-        # 导出按钮
+        # Export button
         self.export_btn = ttk.Button(control_frame, text="🚀 开始导出", 
                                     command=self.start_export, style='Accent.TButton')
         self.export_btn.pack(side=tk.LEFT, padx=(0, 10))
         
-        # 停止按钮
+        # Stop button
         self.stop_btn = ttk.Button(control_frame, text="⏹️ 停止", 
                                   command=self.stop_export, state=tk.DISABLED)
         self.stop_btn.pack(side=tk.LEFT, padx=(0, 10))
         
-        # 清除按钮
+        # Clear button
         clear_btn = ttk.Button(control_frame, text="🗑️ 清除", command=self.clear_all)
         clear_btn.pack(side=tk.LEFT, padx=(0, 10))
         
-        # 关于按钮
+        # About button
         about_btn = ttk.Button(control_frame, text="ℹ️ 关于", command=self.show_about)
         about_btn.pack(side=tk.RIGHT)
         
@@ -236,12 +236,12 @@ class EpubExporterGUI:
         progress_frame.grid(row=row, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 0))
         progress_frame.columnconfigure(0, weight=1)
         
-        # 进度条
+        # Progress bar
         self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_var, 
                                           maximum=100, length=400)
         self.progress_bar.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 10))
         
-        # 状态标签
+        # Status label
         self.status_label = ttk.Label(progress_frame, textvariable=self.status_var)
         self.status_label.grid(row=0, column=1)
         
@@ -252,24 +252,24 @@ class EpubExporterGUI:
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
         
-        # 日志文本框
+        # Log text box
         self.log_text = scrolledtext.ScrolledText(log_frame, height=8, wrap=tk.WORD)
         self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # 配置主框架的行权重
+        # Configure main frame row weight
         parent.rowconfigure(row, weight=1)
         
     def browse_epub_file(self):
         """浏览选择 EPUB 文件"""
-        # 确定初始目录
+        # Determine initial directory
         initial_dir = None
         
-        # 如果已经选择过文件，从该文件的目录开始
+        # If file already selected, start from that file's directory
         current_epub = self.epub_file_path.get()
         if current_epub and Path(current_epub).exists():
             initial_dir = str(Path(current_epub).parent)
         
-        # 如果设置了输出目录，也可以从那里开始
+        # If output directory is set, can also start from there
         elif self.output_dir_path.get():
             output_path = Path(self.output_dir_path.get())
             if output_path.exists():
@@ -277,7 +277,7 @@ class EpubExporterGUI:
             elif output_path.parent.exists():
                 initial_dir = str(output_path.parent)
         
-        # 打开文件选择对话框
+        # Open file selection dialog
         if initial_dir:
             file_path = filedialog.askopenfilename(
                 title="选择 EPUB 文件",
@@ -292,26 +292,29 @@ class EpubExporterGUI:
         if file_path:
             self.epub_file_path.set(file_path)
             
-            # 自动设置输出目录为 EPUB 文件同目录
-            epub_dir = Path(file_path).parent
-            if not self.output_dir_path.get():  # 只有当输出目录为空时才自动设置
-                self.output_dir_path.set(str(epub_dir))
-                self.log(f"已选择文件: {Path(file_path).name}")
-                self.log(f"输出目录已设置为: {epub_dir}")
+            # Auto-set output directory to EPUB filename (without extension) folder
+            epub_path = Path(file_path)
+            epub_name = epub_path.stem  # Get filename without extension
+            output_dir = epub_path.parent / epub_name
+            
+            if not self.output_dir_path.get():  # Only auto-set if output directory is empty
+                self.output_dir_path.set(str(output_dir))
+                self.log(f"已选择文件: {epub_path.name}")
+                self.log(f"输出目录已设置为: {output_dir}")
             else:
-                self.log(f"已选择文件: {Path(file_path).name}")
+                self.log(f"已选择文件: {epub_path.name}")
             
     def browse_output_dir(self):
         """浏览选择输出目录"""
-        # 确定初始目录
+        # Determine initial directory
         initial_dir = None
         
-        # 如果已经选择了 EPUB 文件，从该文件的目录开始
+        # If EPUB file already selected, start from that file's directory
         epub_path = self.epub_file_path.get()
         if epub_path and Path(epub_path).exists():
             initial_dir = str(Path(epub_path).parent)
         
-        # 如果已经设置了输出目录，从该目录开始
+        # If output directory already set, start from that directory
         elif self.output_dir_path.get():
             current_output = Path(self.output_dir_path.get())
             if current_output.exists():
@@ -319,7 +322,7 @@ class EpubExporterGUI:
             elif current_output.parent.exists():
                 initial_dir = str(current_output.parent)
         
-        # 打开文件夹选择对话框
+        # Open folder selection dialog
         if initial_dir:
             dir_path = filedialog.askdirectory(title="选择输出目录", initialdir=initial_dir)
         else:
@@ -344,7 +347,7 @@ class EpubExporterGUI:
             self.log("正在加载 EPUB 文件...")
             self.status_var.set("加载中...")
             
-            # 在后台线程中加载章节
+            # Load chapters in background thread
             threading.Thread(target=self._load_chapters_thread, 
                            args=(epub_path,), daemon=True).start()
             
@@ -358,7 +361,7 @@ class EpubExporterGUI:
             exporter = EpubExporter(epub_path)
             chapters = exporter.get_chapters()
             
-            # 通过队列发送结果
+            # Send result through queue
             self.message_queue.put(('chapters_loaded', chapters))
             
         except Exception as e:
@@ -366,19 +369,19 @@ class EpubExporterGUI:
             
     def update_chapter_list(self, chapters):
         """更新章节列表显示"""
-        # 清空现有项目
+        # Clear existing items
         for item in self.chapter_tree.get_children():
             self.chapter_tree.delete(item)
         
-        # 重置选择状态
+        # Reset selection states
         self.chapter_selections = {}
-        self.chapters_data = chapters  # 保存章节数据
+        self.chapters_data = chapters  # Save chapter data
             
-        # 添加章节
+        # Add chapters
         for i, (title, content, chapter_id) in enumerate(chapters, 1):
             content_length = f"{len(content):,} 字符"
             item_id = self.chapter_tree.insert('', 'end', values=("☐", i, title, content_length))
-            self.chapter_selections[item_id] = False  # 默认未选择
+            self.chapter_selections[item_id] = False  # Default unselected
             
         self.chapter_count_label.config(text=f"共找到 {len(chapters)} 个章节")
         self.log(f"预览完成，共 {len(chapters)} 个章节")
@@ -392,7 +395,7 @@ class EpubExporterGUI:
             new_state = not current_state
             self.chapter_selections[item] = new_state
             
-            # 更新显示
+            # Update display
             values = list(self.chapter_tree.item(item, 'values'))
             values[0] = "☑" if new_state else "☐"
             self.chapter_tree.item(item, values=values)
@@ -429,7 +432,7 @@ class EpubExporterGUI:
         for item in self.chapter_tree.get_children():
             if self.chapter_selections.get(item, False):
                 values = self.chapter_tree.item(item, 'values')
-                chapter_index = int(values[1]) - 1  # 转换为0基索引
+                chapter_index = int(values[1]) - 1  # Convert to 0-based index
                 if hasattr(self, 'chapters_data') and chapter_index < len(self.chapters_data):
                     selected_chapters.append(self.chapters_data[chapter_index])
         return selected_chapters
@@ -448,7 +451,7 @@ class EpubExporterGUI:
         try:
             self.log("开始调试分析 EPUB 结构...")
             
-            # 在后台线程中进行调试分析
+            # Debug analysis in background thread
             threading.Thread(target=self._debug_epub_thread, 
                            args=(epub_path,), daemon=True).start()
             
@@ -461,7 +464,7 @@ class EpubExporterGUI:
         try:
             exporter = EpubExporter(epub_path)
             
-            # 获取章节并启用调试模式
+            # Get chapters and enable debug mode
             self.message_queue.put(('log', "正在进行详细的 EPUB 结构分析..."))
             chapters = exporter.get_chapters(debug=True)
             
@@ -476,7 +479,7 @@ class EpubExporterGUI:
         output_dir = self.output_dir_path.get()
         export_format = self.export_format.get()
         
-        # 验证输入
+        # Validate input
         if not epub_path:
             messagebox.showwarning("警告", "请先选择 EPUB 文件")
             return
@@ -485,23 +488,25 @@ class EpubExporterGUI:
             messagebox.showerror("错误", "EPUB 文件不存在")
             return
             
-        # 如果输出目录为空，使用 EPUB 文件同目录
+        # If output directory is empty, use EPUB filename (without extension) folder
         if not output_dir:
-            output_dir = str(Path(epub_path).parent)
+            epub_path_obj = Path(epub_path)
+            epub_name = epub_path_obj.stem  # Get filename without extension
+            output_dir = str(epub_path_obj.parent / epub_name)
             self.output_dir_path.set(output_dir)
             self.log(f"使用默认输出目录: {output_dir}")
             
-        # 更新界面状态
+        # Update UI state
         self.export_btn.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
         self.progress_var.set(0)
         self.status_var.set("导出中...")
         
-        # 清空日志
+        # Clear log
         self.log_text.delete(1.0, tk.END)
         self.log("开始导出...")
         
-        # 在后台线程中执行导出
+        # Execute export in background thread
         self.export_thread = threading.Thread(
             target=self._export_thread,
             args=(epub_path, output_dir, export_format),
@@ -514,16 +519,16 @@ class EpubExporterGUI:
         try:
             exporter = EpubExporter(epub_path)
             
-            # 获取要导出的章节
+            # Get chapters to export
             self.message_queue.put(('log', "正在解析 EPUB 文件..."))
             
-            # 检查是否有选中的章节
+            # Check if there are selected chapters
             selected_chapters = self.get_selected_chapters()
             if selected_chapters:
                 chapters = selected_chapters
                 self.message_queue.put(('log', f"将导出选中的 {len(chapters)} 个章节"))
             else:
-                # 如果没有选中任何章节，导出所有章节
+                # If no chapters selected, export all chapters
                 chapters = exporter.get_chapters()
                 self.message_queue.put(('log', f"未选择特定章节，将导出所有 {len(chapters)} 个章节"))
             
@@ -531,10 +536,10 @@ class EpubExporterGUI:
                 self.message_queue.put(('error', "未找到任何章节"))
                 return
             
-            # 创建输出目录
+            # Create output directory
             Path(output_dir).mkdir(parents=True, exist_ok=True)
             
-            # 导出图片资源
+            # Export image resources
             self.message_queue.put(('log', "正在导出图片资源..."))
             try:
                 images_exported = exporter._export_images(Path(output_dir))
@@ -545,19 +550,19 @@ class EpubExporterGUI:
             except Exception as e:
                 self.message_queue.put(('log', f"⚠️ 图片导出失败: {e}"))
             
-            # 导出每个章节
+            # Export each chapter
             for i, (title, content, chapter_id) in enumerate(chapters, 1):
                 try:
-                    # 更新进度
+                    # Update progress
                     progress = (i / len(chapters)) * 100
                     self.message_queue.put(('progress', progress))
                     self.message_queue.put(('status', f"导出章节 {i}/{len(chapters)}: {title}"))
                     self.message_queue.put(('log', f"正在导出: {title}"))
                     
-                    # 处理图片链接
+                    # Process image links
                     processed_content = exporter._process_image_links(content, export_format)
                     
-                    # 导出单个章节
+                    # Export single chapter
                     exporter._export_single_chapter(title, processed_content, i, Path(output_dir), export_format)
                     
                 except Exception as e:
@@ -594,7 +599,7 @@ class EpubExporterGUI:
             
         self.chapter_count_label.config(text="")
         
-        # 清空日志
+        # Clear log
         self.log_text.delete(1.0, tk.END)
         
         self.reset_ui_state()

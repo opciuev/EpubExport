@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-EPUB 章节导出工具
-使用 Pandoc 将 EPUB 文件按章节导出为 Markdown 或 TXT 格式
+EPUB Chapter Exporter Tool
+Export EPUB files chapter by chapter to Markdown or TXT format using Pandoc
 """
 
 import os
@@ -19,36 +19,36 @@ from typing import List, Tuple, Optional
 
 
 class EpubExporter:
-    """EPUB 导出器类"""
+    """EPUB Exporter Class"""
     
     def __init__(self, epub_path: str):
         """
-        初始化 EPUB 导出器
+        Initialize EPUB Exporter
         
         Args:
-            epub_path: EPUB 文件路径
+            epub_path: Path to EPUB file
         """
         self.epub_path = Path(epub_path)
         self.book = None
         self.temp_dir = None
         
         if not self.epub_path.exists():
-            raise FileNotFoundError(f"EPUB 文件不存在: {epub_path}")
+            raise FileNotFoundError(f"EPUB file does not exist: {epub_path}")
             
     def load_epub(self) -> None:
-        """加载 EPUB 文件"""
+        """Load EPUB file"""
         try:
             self.book = epub.read_epub(str(self.epub_path))
-            print(f"✓ 成功加载 EPUB 文件: {self.epub_path.name}")
+            print(f"✓ Successfully loaded EPUB file: {self.epub_path.name}")
         except Exception as e:
-            raise Exception(f"无法加载 EPUB 文件: {e}")
+            raise Exception(f"Unable to load EPUB file: {e}")
     
     def get_chapters(self, debug=False) -> List[Tuple[str, str, str]]:
         """
-        获取所有章节内容
+        Get all chapter contents
         
         Args:
-            debug: 是否输出调试信息
+            debug: Whether to output debug information
             
         Returns:
             List of (chapter_title, chapter_content, chapter_id)
@@ -61,37 +61,37 @@ class EpubExporter:
             
         chapters = []
         
-        # 获取书籍的导航结构
+        # Get book's navigation structure
         toc = self.book.toc
         spine = self.book.spine
         
         if debug:
-            print(f"\n📖 TOC 结构分析:")
-            print(f"TOC 类型: {type(toc)}")
-            print(f"TOC 长度: {len(toc) if toc else 0}")
+            print(f"\n📖 TOC Structure Analysis:")
+            print(f"TOC Type: {type(toc)}")
+            print(f"TOC Length: {len(toc) if toc else 0}")
             
-        # 如果有目录结构，使用目录
+        # If TOC structure exists, use TOC
         if toc:
             chapters.extend(self._extract_from_toc(toc, debug))
         else:
-            # 否则从 spine 中提取
+            # Otherwise extract from spine
             chapters.extend(self._extract_from_spine(spine, debug))
         
         if debug:
-            print(f"\n📊 章节提取结果:")
+            print(f"\n📊 Chapter Extraction Results:")
             for i, (title, content, chapter_id) in enumerate(chapters):
-                print(f"  {i+1}. 标题: {title}")
+                print(f"  {i+1}. Title: {title}")
                 print(f"     ID: {chapter_id}")
-                print(f"     内容长度: {len(content)} 字符")
-                print(f"     内容预览: {content[:100].replace(chr(10), ' ')[:50]}...")
+                print(f"     Content Length: {len(content)} characters")
+                print(f"     Content Preview: {content[:100].replace(chr(10), ' ')[:50]}...")
                 print()
         
-        # 检查是否所有章节内容都相同（常见问题）
+        # Check if all chapter contents are identical (common issue)
         if len(chapters) > 1:
             first_content = chapters[0][1]
             if all(chapter[1] == first_content for chapter in chapters):
-                print("⚠️  检测到所有章节内容相同，尝试基于内容分割...")
-                # 尝试基于内容分割章节
+                print("⚠️  Detected identical content in all chapters, attempting content-based splitting...")
+                # Try content-based chapter splitting
                 split_chapters = self._split_content_by_headings(first_content, debug)
                 if split_chapters:
                     chapters = split_chapters
@@ -99,69 +99,69 @@ class EpubExporter:
         return chapters
     
     def _get_item_by_id(self, item_id: str):
-        """根据 ID 获取项目（兼容不同版本的 ebooklib）"""
-        # 尝试使用新版本的方法
+        """Get item by ID (compatible with different ebooklib versions)"""
+        # Try new version method
         if hasattr(self.book, 'get_item_by_id'):
             return self.book.get_item_by_id(item_id)
         
-        # 备用方法：遍历所有项目
+        # Fallback: iterate through all items
         for item in self.book.get_items():
             if item.get_id() == item_id:
                 return item
         return None
     
     def _print_epub_structure(self):
-        """打印 EPUB 文件的详细结构信息"""
-        print(f"\n🔍 EPUB 文件结构分析:")
+        """Print detailed EPUB file structure information"""
+        print(f"\n🔍 EPUB File Structure Analysis:")
         print(f"=" * 60)
         
-        # 基本信息
-        print(f"📚 书籍元数据:")
+        # Basic information
+        print(f"📚 Book Metadata:")
         metadata = self.book.metadata
         for key, values in metadata.items():
             print(f"  {key}: {[str(v[0]) for v in values]}")
         
-        # Spine 信息
-        print(f"\n📄 Spine 结构 (阅读顺序):")
+        # Spine information
+        print(f"\n📄 Spine Structure (Reading Order):")
         for i, (item_id, linear) in enumerate(self.book.spine):
             item = self._get_item_by_id(item_id)
             
             if item:
                 print(f"  {i+1}. ID: {item_id}")
-                print(f"     文件名: {item.get_name()}")
-                print(f"     类型: {item.get_type()}")
-                print(f"     线性: {linear}")
+                print(f"     Filename: {item.get_name()}")
+                print(f"     Type: {item.get_type()}")
+                print(f"     Linear: {linear}")
                 if item.get_type() == ebooklib.ITEM_DOCUMENT:
                     try:
                         content = item.get_content().decode('utf-8')
-                        print(f"     内容长度: {len(content)} 字符")
+                        print(f"     Content Length: {len(content)} characters")
                     except:
-                        print(f"     内容长度: 无法解码")
+                        print(f"     Content Length: Unable to decode")
                 print()
             else:
-                print(f"  {i+1}. ID: {item_id} (未找到对应项目)")
-                print(f"     线性: {linear}")
+                print(f"  {i+1}. ID: {item_id} (corresponding item not found)")
+                print(f"     Linear: {linear}")
                 print()
         
-        # TOC 信息
-        print(f"\n📑 目录 (TOC) 结构:")
+        # TOC information
+        print(f"\n🔖 Table of Contents (TOC) Structure:")
         self._print_toc_recursive(self.book.toc, level=0)
         
-        # 所有项目
-        print(f"\n📦 所有文件项目:")
+        # All items
+        print(f"\n📦 All File Items:")
         for item in self.book.get_items():
             print(f"  ID: {item.get_id()}")
-            print(f"  文件名: {item.get_name()}")
-            print(f"  类型: {item.get_type()}")
+            print(f"  Filename: {item.get_name()}")
+            print(f"  Type: {item.get_type()}")
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
                 content = item.get_content().decode('utf-8')
-                print(f"  内容长度: {len(content)} 字符")
+                print(f"  Content Length: {len(content)} characters")
             print()
         
         print(f"=" * 60)
     
     def _print_toc_recursive(self, toc_items, level=0):
-        """递归打印 TOC 结构"""
+        """Recursively print TOC structure"""
         indent = "  " * level
         for item in toc_items:
             if isinstance(item, tuple):
@@ -172,65 +172,63 @@ class EpubExporter:
                 if children:
                     self._print_toc_recursive(children, level + 1)
             else:
-                # 单个条目
+                # Single item
                 print(f"{indent}📄 {item.title}")
                 print(f"{indent}   href: {item.href}")
     
     def _extract_from_toc(self, toc, debug=False) -> List[Tuple[str, str, str]]:
-        """从目录结构中提取章节"""
+        """Extract chapters from TOC structure"""
         chapters = []
         
-        def process_toc_item(item, level=0):
-            indent = "  " * level
+        # First collect all TOC items (flat list, for getting next chapter info)
+        all_items = []
+        
+        def collect_items(item):
             if isinstance(item, tuple):
-                # (Section, children)
                 section, children = item
-                if debug:
-                    print(f"{indent}处理 TOC 组: {section.title} -> {section.href}")
-                
                 if hasattr(section, 'title') and hasattr(section, 'href'):
-                    content = self._get_item_content(section.href)
-                    if content:
-                        title = section.title or f"章节 {len(chapters) + 1}"
-                        chapters.append((title, content, section.href))
-                        if debug:
-                            print(f"{indent}  ✓ 添加章节: {title} (长度: {len(content)})")
-                    elif debug:
-                        print(f"{indent}  ✗ 无内容: {section.href}")
-                
-                # 处理子章节
+                    all_items.append(section)
                 if children:
                     for child in children:
-                        process_toc_item(child, level + 1)
+                        collect_items(child)
             else:
-                # 单个章节
-                if debug:
-                    print(f"{indent}处理 TOC 项: {item.title} -> {item.href}")
-                
                 if hasattr(item, 'title') and hasattr(item, 'href'):
-                    content = self._get_item_content(item.href)
-                    if content:
-                        title = item.title or f"章节 {len(chapters) + 1}"
-                        chapters.append((title, content, item.href))
-                        if debug:
-                            print(f"{indent}  ✓ 添加章节: {title} (长度: {len(content)})")
-                    elif debug:
-                        print(f"{indent}  ✗ 无内容: {item.href}")
+                    all_items.append(item)
+        
+        # Collect all items
+        for item in toc:
+            collect_items(item)
         
         if debug:
-            print(f"\n🔄 开始处理 TOC 项目:")
+            print(f"\n📄 Collected {len(all_items)} TOC items")
         
-        for item in toc:
-            process_toc_item(item)
+        # Process each item, passing the next item's href
+        for i, item in enumerate(all_items):
+            next_href = all_items[i + 1].href if i + 1 < len(all_items) else None
+            
+            if debug:
+                print(f"\nProcessing TOC item: {item.title}")
+                print(f"  Current href: {item.href}")
+                if next_href:
+                    print(f"  Next href: {next_href}")
+            
+            content = self._get_item_content(item.href, next_href)
+            if content:
+                title = item.title or f"Chapter {len(chapters) + 1}"
+                chapters.append((title, content, item.href))
+                if debug:
+                    print(f"  ✓ Added chapter: {title} (length: {len(content)})")
+            elif debug:
+                print(f"  ✗ No content")
             
         return chapters
     
     def _extract_from_spine(self, spine, debug=False) -> List[Tuple[str, str, str]]:
-        """从 spine 中提取章节"""
+        """Extract chapters from spine"""
         chapters = []
         
         if debug:
-            print(f"\n🔄 从 Spine 提取章节:")
+            print(f"\n📄 Extracting chapters from Spine:")
         
         for item_id, _ in spine:
             item = self._get_item_by_id(item_id)
@@ -239,33 +237,39 @@ class EpubExporter:
                 try:
                     content = item.get_content().decode('utf-8')
                     if content.strip():
-                        # 尝试从内容中提取标题
-                        title = self._extract_title_from_content(content) or f"章节 {len(chapters) + 1}"
+                        # Try to extract title from content
+                        title = self._extract_title_from_content(content) or f"Chapter {len(chapters) + 1}"
                         chapters.append((title, content, item_id))
                         if debug:
-                            print(f"  ✓ 添加章节: {title} (ID: {item_id}, 长度: {len(content)})")
+                            print(f"  ✓ Added chapter: {title} (ID: {item_id}, length: {len(content)})")
                     elif debug:
-                        print(f"  ✗ 空内容: {item_id}")
+                        print(f"  ✗ Empty content: {item_id}")
                 except Exception as e:
                     if debug:
-                        print(f"  ✗ 解码失败: {item_id} - {e}")
+                        print(f"  ✗ Decode failed: {item_id} - {e}")
             elif debug:
                 if item:
-                    print(f"  ✗ 非文档项: {item_id} (类型: {item.get_type()})")
+                    print(f"  ✗ Non-document item: {item_id} (type: {item.get_type()})")
                 else:
-                    print(f"  ✗ 未找到项目: {item_id}")
+                    print(f"  ✗ Item not found: {item_id}")
                     
         return chapters
     
-    def _get_item_content(self, href: str) -> Optional[str]:
-        """根据 href 获取内容，支持锚点分割"""
-        # 分离文件名和锚点
+    def _get_item_content(self, href: str, next_href: Optional[str] = None) -> Optional[str]:
+        """
+        Get content by href, supports anchor splitting
+        
+        Args:
+            href: Current chapter's link
+            next_href: Next chapter's link, used to determine current chapter's end position
+        """
+        # Separate filename and anchor
         if '#' in href:
             file_name, anchor = href.split('#', 1)
         else:
             file_name, anchor = href, None
         
-        # 获取完整文件内容
+        # Get complete file content
         full_content = None
         for item in self.book.get_items():
             if item.get_name() == file_name and item.get_type() == ebooklib.ITEM_DOCUMENT:
@@ -275,71 +279,101 @@ class EpubExporter:
         if not full_content:
             return None
         
-        # 如果没有锚点，返回完整内容
+        # If no anchor, return complete content
         if not anchor:
             return full_content
         
-        # 如果有锚点，尝试根据锚点分割内容
-        return self._extract_content_by_anchor(full_content, anchor, href)
+        # If has anchor, try to split content by anchor
+        return self._extract_content_by_anchor(full_content, anchor, href, next_href)
     
-    def _extract_content_by_anchor(self, content: str, anchor: str, original_href: str) -> str:
-        """根据锚点提取内容片段"""
+    def _extract_content_by_anchor(self, content: str, anchor: str, original_href: str, next_href: Optional[str] = None) -> str:
+        """
+        Extract content segment by anchor
+        
+        Args:
+            content: Complete file content
+            anchor: Current anchor
+            original_href: Current complete link
+            next_href: Next chapter link, used to determine end position
+        """
         import re
         
-        # 处理 filepos 类型的锚点
+        # Handle filepos type anchor
         if anchor.startswith('filepos'):
-            return self._extract_by_filepos(content, anchor, original_href)
+            return self._extract_by_filepos(content, anchor, original_href, next_href)
         
-        # 处理普通 ID 锚点
+        # Handle regular ID anchor
         return self._extract_by_id_anchor(content, anchor)
     
-    def _extract_by_filepos(self, content: str, anchor: str, original_href: str) -> str:
-        """根据 filepos 锚点提取内容"""
-        # filepos 通常表示文件中的字节位置，但在 HTML 中我们需要找到对应的标记
-        # 尝试找到包含这个 filepos 的元素
+    def _extract_by_filepos(self, content: str, anchor: str, original_href: str, next_href: Optional[str] = None) -> str:
+        """
+        Extract content by filepos anchor
         
+        Args:
+            content: Complete file content
+            anchor: Current filepos anchor
+            original_href: Current complete link
+            next_href: Next chapter link
+        """
         import re
         
-        # 查找包含该 filepos 的 anchor 标签或 id 属性
+        # Find anchor tag or id attribute containing this filepos
         filepos_pattern = rf'(?:id|name)=["\']?{re.escape(anchor)}["\']?'
         match = re.search(filepos_pattern, content, re.IGNORECASE)
         
-        if match:
-            # 找到锚点位置，提取从这里到下一个主要标题的内容
-            start_pos = match.start()
-            
-            # 查找下一个可能的章节分割点
+        if not match:
+            # If exact anchor not found, try smart splitting
+            return self._smart_split_content(content, original_href)
+        
+        # Found anchor position
+        start_pos = match.start()
+        
+        # Determine end position
+        end_pos = len(content)
+        
+        # **KEY FIX**: If next chapter link is provided, use it to determine end position
+        if next_href:
+            # Parse next chapter's link
+            if '#' in next_href:
+                next_file, next_anchor = next_href.split('#', 1)
+                # Check if in same file
+                current_file = original_href.split('#')[0] if '#' in original_href else original_href
+                
+                if next_file == current_file and next_anchor.startswith('filepos'):
+                    # In same file, find next anchor's position
+                    next_pattern = rf'(?:id|name)=["\']?{re.escape(next_anchor)}["\']?'
+                    next_match = re.search(next_pattern, content, re.IGNORECASE)
+                    if next_match:
+                        end_pos = next_match.start()
+        
+        # If next chapter position not found, use original heuristic method to find possible split points
+        if end_pos == len(content):
             next_section_patterns = [
-                r'<h[1-4][^>]*>',  # 下一个标题
-                r'id=["\']?filepos\d+["\']?',  # 下一个 filepos
-                r'<div[^>]*class=["\'][^"\']*chapter[^"\']*["\'][^>]*>',  # 章节 div
+                r'<h[1-4][^>]*>',  # Next heading
+                r'id=["\']?filepos\d+["\']?',  # Next filepos
+                r'<div[^>]*class=["\'][^"\']*chapter[^"\']*["\'][^>]*>',  # Chapter div
             ]
             
-            end_pos = len(content)
             for pattern in next_section_patterns:
                 matches = list(re.finditer(pattern, content[start_pos + 100:], re.IGNORECASE))
                 if matches:
                     end_pos = start_pos + 100 + matches[0].start()
                     break
-            
-            extracted = content[start_pos:end_pos].strip()
-            if extracted:
-                return extracted
         
-        # 如果找不到精确的锚点，尝试智能分割
-        return self._smart_split_content(content, original_href)
+        extracted = content[start_pos:end_pos].strip()
+        return extracted if extracted else content
     
     def _extract_by_id_anchor(self, content: str, anchor: str) -> str:
-        """根据 ID 锚点提取内容"""
+        """Extract content by ID anchor"""
         import re
         
-        # 查找具有指定 ID 的元素
+        # Find element with specified ID
         id_pattern = rf'<[^>]+id=["\']?{re.escape(anchor)}["\']?[^>]*>'
         match = re.search(id_pattern, content, re.IGNORECASE)
         
         if match:
             start_pos = match.start()
-            # 查找下一个同级或更高级的标题
+            # Find next same-level or higher-level heading
             next_heading = re.search(r'<h[1-4][^>]*>', content[start_pos + len(match.group()):])
             if next_heading:
                 end_pos = start_pos + len(match.group()) + next_heading.start()
@@ -350,25 +384,25 @@ class EpubExporter:
         return content
     
     def _smart_split_content(self, content: str, href: str) -> str:
-        """智能分割内容 - 当无法找到精确锚点时的备用方案"""
-        # 如果内容很长，尝试基于标题分割
-        if len(content) > 10000:  # 如果内容超过 10KB
-            # 尝试找到所有标题
+        """Smart content splitting - fallback when exact anchor cannot be found"""
+        # If content is very long, try splitting based on headings
+        if len(content) > 10000:  # If content exceeds 10KB
+            # Try to find all headings
             import re
             headings = list(re.finditer(r'<h[1-4][^>]*>(.*?)</h[1-4]>', content, re.IGNORECASE | re.DOTALL))
             
             if len(headings) > 1:
-                # 如果有多个标题，返回第一个标题到第二个标题之间的内容
+                # If multiple headings, return content between first and second heading
                 start_pos = headings[0].start()
                 end_pos = headings[1].start()
                 return content[start_pos:end_pos].strip()
         
-        # 默认返回原内容
+        # Default return original content
         return content
     
     def _extract_title_from_content(self, content: str) -> Optional[str]:
-        """从 HTML 内容中提取标题"""
-        # 尝试提取 h1, h2 等标题标签
+        """Extract title from HTML content"""
+        # Try to extract h1, h2 heading tags
         title_patterns = [
             r'<h[1-6][^>]*>(.*?)</h[1-6]>',
             r'<title[^>]*>(.*?)</title>',
@@ -383,41 +417,39 @@ class EpubExporter:
         return None
     
     def _split_content_by_headings(self, content: str, debug=False) -> List[Tuple[str, str, str]]:
-        """基于标题分割内容为多个章节"""
+        """Split content into multiple chapters based on headings"""
         chapters = []
         
-        # 尝试多种标题模式
+        # Try multiple heading patterns
         heading_patterns = [
-            r'<h[1-3][^>]*>(.*?)</h[1-3]>',  # HTML 标题标签
-            r'^#+\s+(.+)$',  # Markdown 标题
-            r'^第[一二三四五六七八九十\d]+章[：:\s]*(.*)$',  # 中文章节标题
-            r'^第[一二三四五六七八九十\d]+部分[：:\s]*(.*)$',  # 中文部分标题
-            r'^Chapter\s+\d+[：:\s]*(.*)$',  # 英文章节标题
-            r'^\d+[\.、]\s*(.+)$',  # 数字编号标题
+            r'<h[1-3][^>]*>(.*?)</h[1-3]>',  # HTML heading tags
+            r'^#+\s+(.+)$',  # Markdown headings
+            r'^Chapter\s+\d+[:\s]*(.*)$',  # English chapter headings
+            r'^\d+[\.]\s*(.+)$',  # Numbered headings
         ]
         
-        # 首先尝试 HTML 标题标签分割
+        # First try HTML heading tag splitting
         html_chapters = self._split_by_html_headings(content)
         if html_chapters:
             return html_chapters
         
-        # 如果 HTML 分割失败，尝试文本模式分割
+        # If HTML splitting fails, try text pattern splitting
         text_chapters = self._split_by_text_patterns(content, heading_patterns)
         if text_chapters:
             return text_chapters
             
-        # 如果都失败了，返回原始内容作为单个章节
-        print("⚠️  无法自动分割章节，将作为单个文件导出")
-        return [("完整内容", content, "full_content")]
+        # If all failed, return original content as single chapter
+        print("⚠️  Unable to auto-split chapters, will export as single file")
+        return [("Complete Content", content, "full_content")]
     
     def _split_by_html_headings(self, content: str) -> List[Tuple[str, str, str]]:
-        """基于 HTML 标题标签分割内容"""
+        """Split content based on HTML heading tags"""
         import re
         from html import unescape
         
         chapters = []
         
-        # 查找所有 h1-h3 标题
+        # Find all h1-h3 headings
         heading_pattern = r'<h([1-3])[^>]*>(.*?)</h\1>'
         headings = list(re.finditer(heading_pattern, content, re.IGNORECASE | re.DOTALL))
         
@@ -425,15 +457,15 @@ class EpubExporter:
             return []
         
         for i, heading in enumerate(headings):
-            # 提取标题文本
+            # Extract heading text
             title_html = heading.group(2)
             title = re.sub(r'<[^>]+>', '', title_html)
             title = unescape(title).strip()
             
             if not title:
-                title = f"章节 {i + 1}"
+                title = f"Chapter {i + 1}"
             
-            # 确定章节内容范围
+            # Determine chapter content range
             start_pos = heading.start()
             end_pos = headings[i + 1].start() if i + 1 < len(headings) else len(content)
             
@@ -445,10 +477,10 @@ class EpubExporter:
         return chapters if len(chapters) > 1 else []
     
     def _split_by_text_patterns(self, content: str, patterns: List[str]) -> List[Tuple[str, str, str]]:
-        """基于文本模式分割内容"""
+        """Split content based on text patterns"""
         import re
         
-        # 移除 HTML 标签，转换为纯文本
+        # Remove HTML tags, convert to plain text
         text_content = re.sub(r'<[^>]+>', '\n', content)
         text_content = re.sub(r'\n+', '\n', text_content).strip()
         
@@ -462,7 +494,7 @@ class EpubExporter:
             if not line:
                 continue
                 
-            # 检查是否是标题行
+            # Check if heading line
             is_heading = False
             title = None
             
@@ -474,46 +506,46 @@ class EpubExporter:
                     break
             
             if is_heading and current_chapter:
-                # 保存上一章节
+                # Save previous chapter
                 chapter_content = '\n'.join(current_chapter).strip()
                 if chapter_content:
-                    chapters.append((current_title or f"章节 {len(chapters) + 1}", 
+                    chapters.append((current_title or f"Chapter {len(chapters) + 1}", 
                                    chapter_content, f"chapter_{len(chapters) + 1}"))
                 
-                # 开始新章节
+                # Start new chapter
                 current_chapter = [line]
                 current_title = title
             else:
                 current_chapter.append(line)
         
-        # 保存最后一章节
+        # Save last chapter
         if current_chapter:
             chapter_content = '\n'.join(current_chapter).strip()
             if chapter_content:
-                chapters.append((current_title or f"章节 {len(chapters) + 1}", 
+                chapters.append((current_title or f"Chapter {len(chapters) + 1}", 
                                chapter_content, f"chapter_{len(chapters) + 1}"))
         
         return chapters if len(chapters) > 1 else []
 
     def _sanitize_filename(self, filename: str) -> str:
-        """清理文件名，移除非法字符"""
-        # 移除或替换非法字符
+        """Clean filename, remove illegal characters"""
+        # Remove or replace illegal characters
         filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
-        # 移除多余的空格和点
+        # Remove extra spaces and dots
         filename = re.sub(r'\s+', ' ', filename).strip()
         filename = filename.strip('.')
-        # 限制长度
+        # Limit length
         if len(filename) > 100:
             filename = filename[:100]
         return filename or "untitled"
     
     def export_chapters(self, output_dir: str, format_type: str = 'markdown') -> None:
         """
-        导出所有章节
+        Export all chapters
         
         Args:
-            output_dir: 输出目录
-            format_type: 输出格式 ('markdown' 或 'txt')
+            output_dir: Output directory
+            format_type: Output format ('markdown' or 'txt')
         """
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -521,114 +553,114 @@ class EpubExporter:
         chapters = self.get_chapters()
         
         if not chapters:
-            print("⚠️  未找到任何章节内容")
+            print("⚠️  No chapter content found")
             return
         
-        print(f"📚 找到 {len(chapters)} 个章节，开始导出...")
+        print(f"📚 Found {len(chapters)} chapters, starting export...")
         
-        # 导出图片资源
+        # Export image resources
         images_exported = self._export_images(output_path)
         if images_exported:
-            print(f"🖼️  导出了 {images_exported} 个图片文件")
+            print(f"🖼️  Exported {images_exported} image files")
         
-        # 创建临时目录用于 pandoc 转换
+        # Create temporary directory for pandoc conversion
         with tempfile.TemporaryDirectory() as temp_dir:
             self.temp_dir = temp_dir
             
             for i, (title, content, chapter_id) in enumerate(chapters, 1):
                 try:
-                    # 处理内容中的图片链接
+                    # Process image links in content
                     processed_content = self._process_image_links(content, format_type)
                     
                     self._export_single_chapter(
                         title, processed_content, i, output_path, format_type
                     )
                 except Exception as e:
-                    print(f"❌ 导出章节 '{title}' 失败: {e}")
+                    print(f"✗ Failed to export chapter '{title}': {e}")
                     continue
         
-        print(f"✅ 导出完成！文件保存在: {output_path}")
+        print(f"✅ Export complete! Files saved in: {output_path}")
     
     def _export_images(self, output_path: Path) -> int:
-        """导出 EPUB 中的所有图片，保持原始目录结构"""
+        """Export all images from EPUB, maintaining original directory structure"""
         if not self.book:
             return 0
         
         exported_count = 0
-        self.image_mapping = {}  # 存储原始路径到新路径的映射
+        self.image_mapping = {}  # Store mapping from original path to new path
         
         for item in self.book.get_items():
             if item.get_type() == ebooklib.ITEM_IMAGE:
                 try:
-                    # 获取原始图片路径
+                    # Get original image path
                     original_path = item.get_name()
                     
-                    # 创建完整的输出路径（保持目录结构）
+                    # Create complete output path (maintain directory structure)
                     image_output_path = output_path / original_path
                     
-                    # 确保目录存在
+                    # Ensure directory exists
                     image_output_path.parent.mkdir(parents=True, exist_ok=True)
                     
-                    # 保存图片
+                    # Save image
                     with open(image_output_path, 'wb') as f:
                         f.write(item.get_content())
                     
-                    # 记录映射关系
+                    # Record mapping
                     self.image_mapping[original_path] = original_path
                     
                     exported_count += 1
-                    print(f"  📷 导出图片: {original_path}")
+                    print(f"  📷 Exported image: {original_path}")
                     
                 except Exception as e:
-                    print(f"  ❌ 导出图片失败 {item.get_name()}: {e}")
+                    print(f"  ✗ Failed to export image {item.get_name()}: {e}")
         
         return exported_count
     
     def _process_image_links(self, content: str, format_type: str) -> str:
-        """处理内容中的图片链接"""
+        """Process image links in content"""
         import re
         
         if format_type.lower() != 'markdown':
             return content
         
-        # 查找所有 img 标签
+        # Find all img tags
         img_pattern = r'<img[^>]*src=["\']([^"\']+)["\'][^>]*>'
         
         def replace_img_tag(match):
             img_tag = match.group(0)
             src = match.group(1)
             
-            # 清理路径（移除 ../ 等相对路径前缀）
+            # Clean path (remove ../ etc)
             clean_src = src
             while clean_src.startswith('../'):
                 clean_src = clean_src[3:]
             
-            # 尝试提取 alt 文本
+            # Try to extract alt text
             alt_match = re.search(r'alt=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
-            alt_text = alt_match.group(1) if alt_match else "图片"
+            alt_text = alt_match.group(1) if alt_match else "Image"
             
-            # 检查是否有映射关系
+            # Check if mapping exists
             if hasattr(self, 'image_mapping') and clean_src in self.image_mapping:
                 image_path = self.image_mapping[clean_src]
             else:
-                # 如果没有映射，使用原始路径
+                # If no mapping, use original path
                 image_path = clean_src
             
-            # 返回 Markdown 格式的图片链接（使用相对路径）
+            # Return Markdown format image link (using relative path)
             return f'![{alt_text}]({image_path})'
         
-        # 替换所有 img 标签
+        # Replace all img tags
         processed_content = re.sub(img_pattern, replace_img_tag, content, flags=re.IGNORECASE)
         
         return processed_content
     
     def _export_single_chapter(self, title: str, content: str, index: int, 
                              output_path: Path, format_type: str) -> None:
-        """导出单个章节"""
-        # 清理标题作为文件名
+        """Export single chapter"""
+        # Clean title as filename
         safe_title = self._sanitize_filename(title)
         
-        # 生成文件名
+        # Generate filename
         if format_type.lower() == 'markdown':
             filename = f"{index:02d}_{safe_title}.md"
             pandoc_format = 'markdown'
@@ -639,66 +671,73 @@ class EpubExporter:
         output_file = output_path / filename
         
         try:
-            # 使用 pandoc 转换 HTML 到目标格式
+            # Use pandoc to convert HTML to target format
             converted_content = pypandoc.convert_text(
                 content,
                 pandoc_format,
                 format='html',
-                extra_args=['--wrap=none']  # 不自动换行
+                extra_args=['--wrap=none']  # Don't auto wrap
             )
             
-            # 写入文件
+            # Write to file
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(converted_content)
             
-            print(f"✓ 已导出: {filename}")
+            print(f"✓ Exported: {filename}")
             
         except Exception as e:
-            print(f"❌ 转换章节 '{title}' 时出错: {e}")
-            # 如果 pandoc 转换失败，尝试简单的 HTML 标签清理
+            print(f"✗ Error converting chapter '{title}': {e}")
+            # If pandoc conversion fails, try simple HTML tag cleaning
             self._fallback_export(content, output_file, title)
     
     def _fallback_export(self, content: str, output_file: Path, title: str) -> None:
-        """备用导出方法（简单的 HTML 标签清理）"""
+        """Fallback export method (simple HTML tag cleaning)"""
         try:
-            # 简单的 HTML 标签清理
+            # Simple HTML tag cleaning
             import html
             
-            # 移除 HTML 标签
+            # Remove HTML tags
             clean_content = re.sub(r'<[^>]+>', '', content)
-            # 解码 HTML 实体
+            # Decode HTML entities
             clean_content = html.unescape(clean_content)
-            # 清理多余的空白
+            # Clean extra whitespace
             clean_content = re.sub(r'\n\s*\n', '\n\n', clean_content)
             clean_content = clean_content.strip()
             
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(clean_content)
             
-            print(f"✓ 已导出 (备用方法): {output_file.name}")
+            print(f"✓ Exported (fallback method): {output_file.name}")
             
         except Exception as e:
-            print(f"❌ 备用导出也失败了: {e}")
+            print(f"✗ Fallback export also failed: {e}")
 
 
 @click.command()
 @click.argument('epub_file', type=click.Path(exists=True))
-@click.option('--output', '-o', default='./output', 
-              help='输出目录 (默认: ./output)')
+@click.option('--output', '-o', default=None, 
+              help='输出目录 (默认: EPUB文件同目录下的文件名文件夹)')
 @click.option('--format', '-f', type=click.Choice(['markdown', 'txt']), 
               default='markdown', help='输出格式 (默认: markdown)')
 def main(epub_file: str, output: str, format: str):
     """
-    EPUB 章节导出工具
+    EPUB Chapter Exporter Tool
     
-    将 EPUB 文件按章节导出为 Markdown 或 TXT 格式
+    Export EPUB files chapter by chapter to Markdown or TXT format
     
-    示例:
+    Examples:
         python epub_exporter.py book.epub
         python epub_exporter.py book.epub -o ./chapters -f txt
     """
     try:
         print(f"🚀 开始处理 EPUB 文件: {epub_file}")
+        
+        # If no output directory specified, use EPUB filename (without extension) folder
+        if not output:
+            epub_path_obj = Path(epub_file)
+            epub_name = epub_path_obj.stem  # Get filename without extension
+            output = str(epub_path_obj.parent / epub_name)
+            print(f"📁 输出目录: {output}")
         
         exporter = EpubExporter(epub_file)
         exporter.export_chapters(output, format)

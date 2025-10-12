@@ -13,10 +13,10 @@ from pathlib import Path
 def check_python_version():
     """检查 Python 版本"""
     if sys.version_info < (3, 6):
-        print("❌ 需要 Python 3.6 或更高版本")
+        print("错误: 需要 Python 3.6 或更高版本")
         print(f"当前版本: {sys.version}")
         return False
-    print(f"✅ Python 版本: {sys.version.split()[0]}")
+    print(f"成功: Python 版本: {sys.version.split()[0]}")
     return True
 
 def check_pandoc():
@@ -26,12 +26,12 @@ def check_pandoc():
                               capture_output=True, text=True)
         if result.returncode == 0:
             version_line = result.stdout.split('\n')[0]
-            print(f"✅ {version_line}")
+            print(f"成功: {version_line}")
             return True
     except FileNotFoundError:
         pass
     
-    print("❌ Pandoc 未安装")
+    print("错误: Pandoc 未安装")
     print("\n请安装 Pandoc:")
     print("  macOS:    brew install pandoc")
     print("  Ubuntu:   sudo apt-get install pandoc")
@@ -43,18 +43,18 @@ def install_requirements():
     requirements_file = Path(__file__).parent / "requirements.txt"
     
     if not requirements_file.exists():
-        print("❌ requirements.txt 文件不存在")
+        print("错误: requirements.txt 文件不存在")
         return False
     
-    print("\n📦 正在安装 Python 依赖包...")
+    print("\n正在安装 Python 依赖包...")
     try:
         subprocess.check_call([
             sys.executable, "-m", "pip", "install", "-r", str(requirements_file)
         ])
-        print("✅ Python 依赖包安装完成")
+        print("成功: Python 依赖包安装完成")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ 安装依赖包失败: {e}")
+        print(f"错误: 安装依赖包失败: {e}")
         return False
 
 def test_imports():
@@ -66,7 +66,7 @@ def test_imports():
         ('click', '命令行界面')
     ]
     
-    print("\n🧪 测试模块导入...")
+    print("\n测试模块导入...")
     all_ok = True
     
     for module, description in modules:
@@ -75,16 +75,16 @@ def test_imports():
                 import tkinter
             else:
                 __import__(module)
-            print(f"✅ {module} ({description})")
+            print(f"成功: {module} ({description})")
         except ImportError as e:
-            print(f"❌ {module} ({description}) - {e}")
+            print(f"错误: {module} ({description}) - {e}")
             all_ok = False
     
     return all_ok
 
 def main():
     """主安装流程"""
-    print("🚀 EPUB 导出工具安装检查")
+    print("EPUB 导出工具安装检查")
     print("=" * 50)
     
     # 检查 Python 版本
@@ -103,13 +103,13 @@ def main():
     print("\n" + "=" * 50)
     
     if pandoc_ok and deps_ok and imports_ok:
-        print("🎉 安装检查完成！所有依赖都已就绪")
+        print("安装检查完成！所有依赖都已就绪")
         print("\n启动方式:")
         print("  图形界面: python run_gui.py")
         print("  命令行:   python epub_exporter.py --help")
         return True
     else:
-        print("⚠️  安装检查发现问题，请解决后重试")
+        print("警告: 安装检查发现问题，请解决后重试")
         if not pandoc_ok:
             print("  - 需要安装 Pandoc")
         if not deps_ok:
